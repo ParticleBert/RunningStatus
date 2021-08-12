@@ -238,6 +238,8 @@ void loop() {
 		}
     
 		// Debug Output
+		Serial.print(running_counter_index);
+		Serial.print(": \t");
 		Serial.print(value);
 		Serial.print("\t");
 		Serial.print(wave_0);
