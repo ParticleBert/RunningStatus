@@ -68,6 +68,7 @@ byte wave_6;
 byte wave_7;
 
 byte trigger_envelope = 0;
+float time_16th = 100;
 
 void setup() {
 	// put your setup code here, to run once:
@@ -101,7 +102,7 @@ void setup() {
 
 void loop() {
 	// put your main code here, to run repeatedly:
-	if(ctr_millis > 100)
+	if(ctr_millis > time_16th)
 	{
 		byte value = array_pulse[running_counter_index];
 
@@ -249,7 +250,7 @@ void loop() {
 	bpm_scaled_value = bpm_scaled_value + BPM_LOWER_LIMIT;
   
 	// Calculate the frequency which corresponds to 1/16th note at the chosen BPM
-	float time_16th = 60 / (bpm_scaled_value * 2) * 1000;   // in ms      FIXME Why 2?
+	time_16th = 60 / (bpm_scaled_value * 4) * 1000;   // in ms      FIXME Why 2?
 	float hertz_16th = (bpm_scaled_value * 2) / 60;         // In Hertz   FIXME Why 2?
 
 	// envelope1.release(time_16th*4);
