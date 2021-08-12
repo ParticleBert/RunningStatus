@@ -47,17 +47,19 @@ AudioConnection       	patchCordMixerB_2				(noise1, 	0, mixer_b, 1);
 AudioConnection       	patchCordMixerB_3				(dc_div5, 	0, mixer_b, 2);
 AudioConnection       	patchCordMixerB_4				(dc_div8, 	0, mixer_b, 3);
 AudioConnection			mixer_b_to_vco_b				(mixer_b, 	0, vco_b, 0);	
-AudioConnection			vco_b_to_filter1				(vco_b, 	0, filter1, 0);
-AudioConnection     	filter1_to_envelope_amplitude	(filter1, 	0, envelope_amplitude, 0);
 
+AudioConnection			vco_b_to_filter					(vco_b, 	0, filter1, 0);
 AudioConnection			dc_to_envelope_filter			(dc_forfilter, 0, envelope_filter, 0);
 AudioConnection			envelope_filter_to_filter		(envelope_filter, 0, filter1, 1);
+
+AudioConnection     	filter1_to_envelope_amplitude	(filter1, 	0, envelope_amplitude, 0);
+
 // AudioConnection       	output_L						(envelope_amplitude, 0, i2s1, 0);
 // AudioConnection       	output_R						(envelope_amplitude, 0, i2s1, 1);
 
-AudioConnection			filter1_to_i2s_L				(filter1, 0, i2s1, 0);
-AudioConnection			filter1_to_i2s_R				(filter1, 0, i2s1, 1);
-AudioConnection			filter1_to_DAC					(filter1, 0, dac1, 0);
+AudioConnection			envelope_amplitude_to_i2s_L		(envelope_amplitude, 0, i2s1, 0);
+AudioConnection			envelope_amplitude_to_i2s_R		(envelope_amplitude, 0, i2s1, 1);
+AudioConnection			envelope_amplitude_to_DAC		(envelope_amplitude, 0, dac1, 0);
 // cut here -------------------------------------------------------------------
 
 // Global Variables
@@ -116,12 +118,13 @@ void setup() {
 	vco_b.begin(0.8, 150, WAVEFORM_SINE);
 
 	envelope_amplitude.attack(0);
-	envelope_amplitude.decay(0);
+	envelope_amplitude.decay(2);
 	envelope_amplitude.sustain(1);
-	envelope_amplitude.release(90);	
+	envelope_amplitude.release(220);			// ROEY This release of the amplitude envelope is important for the sound
+												// The longer it gets, the longer the drum sound gets.
 	
-	envelope_filter.attack(5);
-	envelope_filter.decay(0);
+	envelope_filter.attack(3);
+	envelope_filter.decay(2);
 	envelope_filter.sustain(1);
 	envelope_filter.release(90);
 	
@@ -244,6 +247,8 @@ void loop() {
 		Serial.print(wave_4);
 		Serial.print(wave_5);
 		Serial.print(wave_6);
+		Serial.print("\t");
+		Serial.print(time_16th);
 		Serial.println(wave_7);
     
 		// Trigger the Envelopes if value is dividable by 2 without remainder.
@@ -261,7 +266,7 @@ void loop() {
 	
 		// Housekeeping
 		running_counter_index++;
-		if (running_counter_index == 1681)
+		if (running_counter_index == 1680)
 		{
 			running_counter_index = 0;
 		}
@@ -303,9 +308,6 @@ void loop() {
 	float freq_a = various3_poti_raw * 2;
 	freq_a = freq_a - 1;
 
-	// Release
-	poti_a7	= poti_a7 * 120;
-
 	// Body
 	mixer_a.gain(0,various1_poti_raw);
 	
@@ -313,8 +315,9 @@ void loop() {
 	noise1.amplitude(various2_poti_raw);
 	dc_forfilter.amplitude(freq_a);
 
-	// filter1.frequency(freq_a);
-
+	// Release
+	poti_a7	= poti_a7 * time_16th * 2;
+	envelope_amplitude.release(poti_a7);
 	envelope_filter.release(poti_a7);
 
 	if(envelope_amplitude.isSustain() == true)
