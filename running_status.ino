@@ -1,46 +1,47 @@
 #include <Audio.h>
 #include <Wire.h>
 
-#define DC_LOW  0
-#define DC_HIGH 1
-#define BPM_LOWER_LIMIT   (30)
-#define BPM_UPPER_LIMIT   (200)
+#define DC_LOW  			0
+#define DC_HIGH 			1
+#define BPM_LOWER_LIMIT   	30
+#define BPM_UPPER_LIMIT   	200
 // cut here -------------------------------------------------------------------
-AudioSynthWaveformDc  	dc_div1;
-AudioSynthWaveformDc  	dc_div2;
-AudioSynthWaveformDc  	dc_div3;
-AudioSynthWaveformDc  	dc_div4;
-AudioSynthWaveformDc  	dc_div5;
-AudioSynthWaveformDc  	dc_div6;
-AudioSynthWaveformDc  	dc_div7;
-AudioSynthWaveformDc  	dc_div8;
+AudioSynthWaveformDc  	dc_div1;				//xy=868.3333206176758,1251.666561126709
+AudioSynthWaveformDc  	dc_div2;				//xy=101.66668701171875,881.6665954589844
+AudioSynthWaveformDc  	dc_div3;				//xy=101.66668701171875,853.3332214355469
+AudioSynthWaveformDc  	dc_div4;				//xy=95.00003051757812,813.3332901000977
+AudioSynthWaveformDc  	dc_div5;				//xy=343.3333625793457,1098.3332948684692
+AudioSynthWaveformDc  	dc_div6;				//xy=93.33331680297852,989.9999495744705
+AudioSynthWaveformDc  	dc_div7;				//xy=99.9999771118164,919.9999375343323
+AudioSynthWaveformDc  	dc_div8;				//xy=348.33334732055664,1140.0001754760742
 
-AudioSynthWaveformDc	dc_forfilter;
+AudioSynthWaveformDc	dc_forfilter;			//xy=875.0000877380371,1176.6666812896729
 
-AudioSynthWaveformModulated vco_a;
-AudioSynthWaveformModulated vco_b;
+AudioSynthWaveformModulated vco_a;				//xy=438.33325576782227,939.9998455047607
+AudioSynthWaveformModulated vco_b;				//xy=698.3333168029785,1059.9998064041138
 
-AudioSynthNoiseWhite  		noise1;
+AudioSynthNoiseWhite  		noise1;				//xy=346.6666831970215,1058.33327293396
 
-AudioEffectReverb     		reverb1;
-AudioEffectEnvelope   		envelope_amplitude;
-AudioEffectEnvelope   		envelope_filter;
+AudioEffectReverb     		reverb1;			//xy=1226.6668663024902,1073.3333444595337
+AudioEffectEnvelope   		envelope_amplitude;	//xy=1066.6666946411133,849.9999046325684
+AudioEffectEnvelope   		envelope_filter;	//xy=1078.333408355713,1178.333267211914
 
-AudioFilterStateVariable  	filter1;
+AudioFilterStateVariable  	filter1;			//xy=876.666633605957,1064.9998989105225
 
-AudioOutputI2S        		i2s1;
-AudioControlSGTL5000  		sgtl5000_1;
+AudioOutputI2S        		i2s1;				//xy=1221.6667022705078,961.6666440963745
+AudioOutputAnalog        	dac1;           	//xy=1270.0000190734863,1035.7143001556396
+AudioControlSGTL5000  		sgtl5000_1;			//xy=1221.6665802001953,1019.9999694824219
 
 // mixer A collects four clock divider
-AudioMixer4           	mixer_a;
+AudioMixer4           	mixer_a;				//xy=283.3334503173828,884.9998874664307
 AudioConnection       	patchCordMixerA_1				(dc_div4, 	0, mixer_a, 0);
 AudioConnection       	patchCordMixerA_2				(dc_div3, 	0, mixer_a, 1);
 AudioConnection       	patchCordMixerA_3				(dc_div2, 	0, mixer_a, 2);
 AudioConnection       	patchCordMixerA_4				(dc_div7, 	0, mixer_a, 3);
-AudioConnection       	mixer_a_to_vco_a				(mixer_a, 	vco_a);
+AudioConnection       	mixer_a_to_vco_a				(mixer_a, 	vco_a);	
 
 // mixer B collects the carrier, the noise and two additional clocks
-AudioMixer4           	mixer_b;
+AudioMixer4           	mixer_b;				//xy=535.0000419616699,1061.6666240692139
 AudioConnection       	patchCordMixerB_1				(vco_a, 	0, mixer_b, 0);
 AudioConnection       	patchCordMixerB_2				(noise1, 	0, mixer_b, 1);
 AudioConnection       	patchCordMixerB_3				(dc_div5, 	0, mixer_b, 2);
@@ -56,6 +57,7 @@ AudioConnection			envelope_filter_to_filter		(envelope_filter, 0, filter1, 1);
 
 AudioConnection			filter1_to_i2s_L				(filter1, 0, i2s1, 0);
 AudioConnection			filter1_to_i2s_R				(filter1, 0, i2s1, 1);
+AudioConnection			filter1_to_DAC					(filter1, 0, dac1, 0);
 // cut here -------------------------------------------------------------------
 
 // Global Variables
@@ -134,7 +136,7 @@ void loop() {
 	// put your main code here, to run repeatedly:
 	if(ctr_millis > time_16th)
 	{
-		byte value = array_pulse[running_counter_index];
+		byte value = array_pulse[running_counter_index];	// Here you can select which array to use.
 
 		// Bit 0
 		if(value & 1)
@@ -244,7 +246,8 @@ void loop() {
 		Serial.print(wave_6);
 		Serial.println(wave_7);
     
-		// Trigger the Envelopes
+		// Trigger the Envelopes if value is dividable by 2 without remainder.
+		// This is the cause when value == 0, 2, 4, 8 etc.
 		if(value % 2 == 0)
 		{
 			envelope_amplitude.noteOn();
@@ -264,14 +267,15 @@ void loop() {
 		}
 		ctr_millis = 0;
 	}
-		// --------------------------------------------------------------------------
+	
+	// --------------------------------------------------------------------------
 	// Read the potis
 	// --------------------------------------------------------------------------
 	// 	A6			A7			A1 		A2		A3
 	//	log			log			lin		lin		lin  
 	// decay+filter	nothing		noise	body	tempo
 	//							grit
-	float	poti_a7	= (float)analogRead(A7) / 1023;
+	float poti_a7	= (float)analogRead(A7) / 1023;
 	float various3_poti_raw = (float)analogRead(A6) / 1023;		// On my HW this poti is logarithmic
 
 	float various2_poti_raw = (float)analogRead(A1) / 1023;	
