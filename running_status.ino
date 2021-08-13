@@ -365,34 +365,20 @@ void loop() {
 		byte type=MIDI.getType();
 		switch(type)
 		{
-			case midi::NoteOn:
-				Serial.println("Note On");
+			case 0xF8:
+				Serial.println("Clock");
 				break;
-			case midi::NoteOff:
-				Serial.println("Note Off");
+			case 0xFC:
+				Serial.println("Stop");
 				break;
-			case midi::AfterTouchPoly:
-				Serial.println("Aftertouch Poly");
+			case 0xFA:
+				Serial.println("Start");
 				break;
-			case midi::ControlChange:
-				Serial.println("Control Change");
-				break;
-			case midi::ProgramChange:
-				Serial.println("Program Change");
-				break;
-			case midi::AfterTouchChannel:
-				Serial.println("Aftertouch Channel");
-				break;
-			case midi::PitchBend:
-				Serial.println("Pitch Bend");
-				break;
-			case midi::SystemExclusive:
-				Serial.println("SysEx");
+			case 0xFB:
+				Serial.println("Continue");
 				break;
 			default:
-				Serial.print("Alles Andere: ");
-				Serial.print(MIDI.getData1());
-				Serial.print(MIDI.getData2());
+				Serial.print("Etwas Anderes");
 				break;
 		}
 	}
