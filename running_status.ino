@@ -1,21 +1,51 @@
 #include <Audio.h>
 #include <Wire.h>
 
+#define DEBUG				// ROEY Uncomment this line if you want to disable the debugging over the serial line.
+#define USES_AUDIOSHIELD	// ROEY If you use the audioshield, then keep this line active.
+							// If you use only the DAC, then disable this line by making it a comment (//)
+// 	DAC-Mode									Audioshield-Mode	
+// 	CODEC (SGTL5000) will not be initialized	CODEC will be initialized
+//	Pots A1, A2, A3, A6, A7 can be used			Pots A1, A2, A3, A6, A7 can be used
+// 	Addtln. Pots on A4, A5, A6, A7 are avlbl.	Pots on A4, A5, A6, A7 are not available
+// 	Values for A4, A5, A6, A7 are fix in code	Values for A4, A5, A6, A7 will be read from Potis
+
+// For the fix values please search the code for ROEY
+
 #define DC_LOW  			0
 #define DC_HIGH 			1
 #define BPM_LOWER_LIMIT   	30
 #define BPM_UPPER_LIMIT   	200
-// cut here -------------------------------------------------------------------
-AudioSynthWaveformDc  	dc_div1;				//xy=868.3333206176758,1251.666561126709
-AudioSynthWaveformDc  	dc_div2;				//xy=101.66668701171875,881.6665954589844
-AudioSynthWaveformDc  	dc_div3;				//xy=101.66668701171875,853.3332214355469
-AudioSynthWaveformDc  	dc_div4;				//xy=95.00003051757812,813.3332901000977
-AudioSynthWaveformDc  	dc_div5;				//xy=343.3333625793457,1098.3332948684692
-AudioSynthWaveformDc  	dc_div6;				//xy=93.33331680297852,989.9999495744705
-AudioSynthWaveformDc  	dc_div7;				//xy=99.9999771118164,919.9999375343323
-AudioSynthWaveformDc  	dc_div8;				//xy=348.33334732055664,1140.0001754760742
 
-AudioSynthWaveformDc	dc_forfilter;			//xy=875.0000877380371,1176.6666812896729
+								// ROEY These are the positions of the potis on the Teensy 3.2
+								// A1, A2, A3, A6, A7 in both configurations
+								// A4, A5, A8, A9 without the Audioshield
+const int poti_on_a1	= A1;	// Grit (amounf of noise)
+const int poti_on_a2	= A2;	// Body (the amount of carrier)
+const int poti_on_a3	= A3;	// Tempo
+const int poti_on_a6	= A6;	// Filter Cutoff
+const int poti_on_a7	= A7;	// Release Time
+
+
+#ifndef USES_AUDIOSHIELD
+const int poti_on_a4	= A4;	// ONLY WIHOUTH AUDIO SHIELD	/4
+const int poti_on_a5	= A5;	// ONLY WITHOUT AUDIO SHIELD	/5
+const int poti_on_a8	= A8;	// ONLY WITHOUT AUDIO SHIELD	/7
+const int poti_on_a9	= A9;	// ONLY WITHOUT AUDIO SHIELD	/8
+#endif
+
+
+// cut here -------------------------------------------------------------------
+AudioSynthWaveformDc  		dc_div1;				//xy=868.3333206176758,1251.666561126709
+AudioSynthWaveformDc  		dc_div2;				//xy=101.66668701171875,881.6665954589844
+AudioSynthWaveformDc  		dc_div3;				//xy=101.66668701171875,853.3332214355469
+AudioSynthWaveformDc  		dc_div4;				//xy=95.00003051757812,813.3332901000977
+AudioSynthWaveformDc  		dc_div5;				//xy=343.3333625793457,1098.3332948684692
+AudioSynthWaveformDc  		dc_div6;				//xy=93.33331680297852,989.9999495744705
+AudioSynthWaveformDc  		dc_div7;				//xy=99.9999771118164,919.9999375343323
+AudioSynthWaveformDc  		dc_div8;				//xy=348.33334732055664,1140.0001754760742
+
+AudioSynthWaveformDc		dc_forfilter;			//xy=875.0000877380371,1176.6666812896729
 
 AudioSynthWaveformModulated vco_a;				//xy=438.33325576782227,939.9998455047607
 AudioSynthWaveformModulated vco_b;				//xy=698.3333168029785,1059.9998064041138
@@ -28,9 +58,12 @@ AudioEffectEnvelope   		envelope_filter;	//xy=1078.333408355713,1178.33326721191
 
 AudioFilterStateVariable  	filter1;			//xy=876.666633605957,1064.9998989105225
 
-AudioOutputI2S        		i2s1;				//xy=1221.6667022705078,961.6666440963745
-AudioOutputAnalog        	dac1;           	//xy=1270.0000190734863,1035.7143001556396
+#ifdef USES_AUDIOSHIELD
 AudioControlSGTL5000  		sgtl5000_1;			//xy=1221.6665802001953,1019.9999694824219
+AudioOutputI2S        		i2s1;				//xy=1221.6667022705078,961.6666440963745
+#endif
+
+AudioOutputAnalog        	dac1;           	//xy=1270.0000190734863,1035.7143001556396
 
 // mixer A collects four clock divider
 AudioMixer4           	mixer_a;				//xy=283.3334503173828,884.9998874664307
@@ -56,9 +89,11 @@ AudioConnection     	filter1_to_envelope_amplitude	(filter1, 	0, envelope_amplit
 
 // AudioConnection       	output_L						(envelope_amplitude, 0, i2s1, 0);
 // AudioConnection       	output_R						(envelope_amplitude, 0, i2s1, 1);
-
+#ifdef USES_AUDIOSHIELD
 AudioConnection			envelope_amplitude_to_i2s_L		(envelope_amplitude, 0, i2s1, 0);
 AudioConnection			envelope_amplitude_to_i2s_R		(envelope_amplitude, 0, i2s1, 1);
+#endif
+
 AudioConnection			envelope_amplitude_to_DAC		(envelope_amplitude, 0, dac1, 0);
 // cut here -------------------------------------------------------------------
 
@@ -98,31 +133,32 @@ void setup() {
 	Serial.begin(115200);
 	AudioMemory(20);
 
+	#ifdef USES_AUDIOSHIELD
     sgtl5000_1.enable();
     sgtl5000_1.volume(1);
+	#endif
 
-	mixer_a.gain(0,1.5);                       	// /4
+	mixer_a.gain(0,1.5);                       	// ROEY This is the default value for divide-by-4. Change the value behind the comma
 	mixer_a.gain(1,0);   				       	// /3
 	mixer_a.gain(2,0.4);  						// /2
-	mixer_a.gain(3,0);   						// /7
+	mixer_a.gain(3,0);   						// ROEY This is the default vaule for divide-by-7
 
-	vco_a.frequencyModulation(8);			    // 12 Octaves Pitch Modulation
+	vco_a.frequencyModulation(8);			    // 8 Octaves Pitch Modulation
 	vco_a.begin(0.8, 80, WAVEFORM_SINE);
 
 	mixer_b.gain(0,1);   						// Carrier
 	mixer_b.gain(1,1);   						// Noise
-	mixer_b.gain(2,0.8);   						// /5
-	mixer_b.gain(3,0.5);   						// /8
+	mixer_b.gain(2,0.8);   						// ROEY This is the default value for divide-by-5
+	mixer_b.gain(3,0.5);   						// ROEY This is the default vaule for divide-by-8
 
-	vco_b.frequencyModulation(8);				// 12 Octaves Pitch Modulation
+	vco_b.frequencyModulation(8);				// 8 Octaves Pitch Modulation
 	vco_b.begin(0.8, 150, WAVEFORM_SINE);
 
 	envelope_amplitude.attack(0);
 	envelope_amplitude.decay(2);
 	envelope_amplitude.sustain(1);
-	envelope_amplitude.release(220);			// ROEY This release of the amplitude envelope is important for the sound
-												// The longer it gets, the longer the drum sound gets.
-	
+	envelope_amplitude.release(220);			
+													
 	envelope_filter.attack(3);
 	envelope_filter.decay(2);
 	envelope_filter.sustain(1);
@@ -136,7 +172,6 @@ void setup() {
 }
 
 void loop() {
-	// put your main code here, to run repeatedly:
 	if(ctr_millis > time_16th)
 	{
 		byte value = array_pulse[running_counter_index];	// Here you can select which array to use.
@@ -237,6 +272,7 @@ void loop() {
 			dc_div8.amplitude(DC_LOW);
 		}
     
+		#ifdef DEBUG
 		// Debug Output
 		Serial.print(running_counter_index);
 		Serial.print(": \t");
@@ -252,6 +288,7 @@ void loop() {
 		Serial.print("\t");
 		Serial.print(time_16th);
 		Serial.println(wave_7);
+		#endif
     
 		// Trigger the Envelopes if value is dividable by 2 without remainder.
 		// This is the cause when value == 0, 2, 4, 8 etc.
@@ -262,66 +299,55 @@ void loop() {
 		}
 		else
 		{
+			// I commented this out because the envelope gets too long.
+			// Then envelope.noteOff gets send as soon as the envelope reaches the sustain phase.
 			// envelope_amplitude.noteOff();
 			// envelope_filter.noteOff();
 		}
 	
 		// Housekeeping
-		running_counter_index++;
+		running_counter_index++;	// Handle the running counter and his overflow
 		if (running_counter_index == 1680)
 		{
 			running_counter_index = 0;
 		}
-		ctr_millis = 0;
+		ctr_millis = 0;				// Reset the milliseconds
 	}
 	
-	// --------------------------------------------------------------------------
-	// Read the potis
-	// --------------------------------------------------------------------------
-	// 	A6			A7			A1 		A2		A3
-	//	log			log			lin		lin		lin  
-	// decay+filter	nothing		noise	body	tempo
-	//							grit
-	float poti_a7	= (float)analogRead(A7) / 1023;
-	float various3_poti_raw = (float)analogRead(A6) / 1023;		// On my HW this poti is logarithmic
-
-	float various2_poti_raw = (float)analogRead(A1) / 1023;	
-	float various1_poti_raw = (float)analogRead(A2) / 1023;
-	float bpm_poti_raw = (float)analogRead(A3) / 1023;
-
-  
-	// ------------------------------------------------------------------------
-	// Do the poti calculations
-	// ------------------------------------------------------------------------
-  
-	// BPM poti
-	// Scale the value to the allowed BPM maximum and minimum
-	float bpm_scaled_value = bpm_poti_raw * (BPM_UPPER_LIMIT - BPM_LOWER_LIMIT);
-	bpm_scaled_value = bpm_scaled_value + BPM_LOWER_LIMIT;
-  
-	// Calculate the frequency which corresponds to 1/16th note at the chosen BPM
-	time_16th = 60 / (bpm_scaled_value * 4) * 1000;   // in ms      FIXME Why 2?
-	float hertz_16th = (bpm_scaled_value * 2) / 60;         // In Hertz   FIXME Why 2?
-
-	// envelope1.release(time_16th*4);
-	// Timer1.setPeriod(time_16th);
-
-	// Frequency poti
-	float freq_a = various3_poti_raw * 2;
-	freq_a = freq_a - 1;
-
-	// Body
-	mixer_a.gain(0,various1_poti_raw);
+	// Read the potis and set the values
+	float poti_grit_raw		= (float)analogRead(poti_on_a1) / 1023;	// Grit equals noise and is routed to the noise amplitude
+	noise1.amplitude(poti_grit_raw);
 	
-	// Grit / Noise
-	noise1.amplitude(various2_poti_raw);
+	float poti_body_raw		= (float)analogRead(poti_on_a2) / 1023;	// Body is the carrier amount
+	mixer_a.gain(0,poti_body_raw);
+	
+	float poti_tempo_raw 	= (float)analogRead(poti_on_a3) / 1023;					// Tempo is the tempo
+	float bpm_scaled_value = poti_tempo_raw * (BPM_UPPER_LIMIT - BPM_LOWER_LIMIT);	// Scale the value to the selected BPM range.
+	bpm_scaled_value = bpm_scaled_value + BPM_LOWER_LIMIT;
+	time_16th = 60 / (bpm_scaled_value * 4) * 1000;   								// *1000 because ms
+	
+	float poti_cutoff_raw	= (float)analogRead(poti_on_a6) / 1023;	// The cutoff-frequency for the filter		
+	float freq_a = poti_cutoff_raw * 2;
+	freq_a = freq_a - 1;
 	dc_forfilter.amplitude(freq_a);
 
-	// Release
-	poti_a7	= poti_a7 * time_16th * 2;
-	envelope_amplitude.release(poti_a7);
-	envelope_filter.release(poti_a7);
+	float poti_release_raw	= (float)analogRead(poti_on_a7) / 1023;
+	float poti_release_calculated	= poti_release_raw * time_16th * 2;
+	envelope_amplitude.release(poti_release_calculated);
+	envelope_filter.release(poti_release_calculated);
 
+	#ifndef USES_AUDIOSHIELD
+	float poti_div4_raw		= (float)analogRead(poti_on_a4) / 1023;	// Div4
+	mixer_a.gain(0, poti_div4_raw);
+	float poti_div5_raw		= (float)analogRead(poti_on_a5) / 1023;	// Div5
+	mixer_b.gain(2, poti_div5_raw);
+	float poti_div7_raw		= (float)analogRead(poti_on_a8) / 1023;	// Div7
+	mixer_a.gain(3, poti_div7_raw);
+	float poti_div8_raw		= (float)analogRead(poti_on_a9) / 1023;	// Div8
+	mixer_b.gain(3, poti_div8_raw);
+	#endif
+
+	// Again, as soon as the amplitude envelope reaches the sustain phase, the noteOff gets automatically sent.
 	if(envelope_amplitude.isSustain() == true)
 	{
 		envelope_amplitude.noteOff();
