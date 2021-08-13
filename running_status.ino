@@ -4,12 +4,13 @@
 #define DEBUG				// ROEY Uncomment this line if you want to disable the debugging over the serial line.
 #define USES_AUDIOSHIELD	// ROEY If you use the audioshield, then keep this line active.
 							// If you use only the DAC, then disable this line by making it a comment (//)
-							// DAC-Mode only:
-							// 	* The CODEC SGTL5000 will not be initialized
-							//	* Additional Potis on A4, A5, A8 and A9 can be used.
-							// With Audioshield:
-							//	* The CODEC SGTL5000 will be initialized
-							//	* The Potis A4, A5, A8 and A9 will have fixed values
+// 	DAC-Mode									Audioshield-Mode	
+// 	CODEC (SGTL5000) will not be initialized	CODEC will be initialized
+//	Pots A1, A2, A3, A6, A7 can be used			Pots A1, A2, A3, A6, A7 can be used
+// 	Addtln. Pots on A4, A5, A6, A7 are avlbl.	Pots on A4, A5, A6, A7 are not available
+// 	Values for A4, A5, A6, A7 are fix in code	Values for A4, A5, A6, A7 will be read from Potis
+
+// For the fix values please search the code for ROEY
 
 #define DC_LOW  			0
 #define DC_HIGH 			1
@@ -137,7 +138,7 @@ void setup() {
     sgtl5000_1.volume(1);
 	#endif
 
-	mixer_a.gain(0,1.5);                       	// ROEY This is the default value for divide-by-4
+	mixer_a.gain(0,1.5);                       	// ROEY This is the default value for divide-by-4. Change the value behind the comma
 	mixer_a.gain(1,0);   				       	// /3
 	mixer_a.gain(2,0.4);  						// /2
 	mixer_a.gain(3,0);   						// ROEY This is the default vaule for divide-by-7
