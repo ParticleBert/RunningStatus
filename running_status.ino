@@ -1,7 +1,8 @@
 #include <Audio.h>
 #include <Wire.h>
+#include <MIDI.h>
 
-#define DEBUG				// ROEY Uncomment this line if you want to disable the debugging over the serial line.
+// #define DEBUG				// ROEY Uncomment this line if you want to disable the debugging over the serial line.
 #define USES_AUDIOSHIELD	// ROEY If you use the audioshield, then keep this line active.
 							// If you use only the DAC, then disable this line by making it a comment (//)
 // 	DAC-Mode									Audioshield-Mode	
@@ -128,6 +129,8 @@ byte wave_7;
 byte trigger_envelope = 0;
 float time_16th = 100;
 
+MIDI_CREATE_INSTANCE(HardwareSerial, Serial1, MIDI)
+
 void setup() {
 	// put your setup code here, to run once:
 	Serial.begin(115200);
@@ -169,6 +172,9 @@ void setup() {
 	filter1.octaveControl(7);
 	filter1.resonance(1.3);
 	filter1.frequency(100);
+	
+	// MIDI
+	MIDI.begin(MIDI_CHANNEL_OMNI);
 }
 
 void loop() {
@@ -352,5 +358,10 @@ void loop() {
 	{
 		envelope_amplitude.noteOff();
 		envelope_filter.noteOff();
+	}
+	
+	if( MIDI.read() )
+	{
+		Serial.println("MidiIn");
 	}
 }
