@@ -16,11 +16,15 @@
 #define BPM_LOWER_LIMIT   	30
 #define BPM_UPPER_LIMIT   	200
 
+								// ROEY These are the positions of the potis on the Teensy 3.2
+								// A1, A2, A3, A6, A7 in both configurations
+								// A4, A5, A8, A9 without the Audioshield
 const int poti_on_a1	= A1;	// Grit (amounf of noise)
 const int poti_on_a2	= A2;	// Body (the amount of carrier)
 const int poti_on_a3	= A3;	// Tempo
 const int poti_on_a6	= A6;	// Filter Cutoff
 const int poti_on_a7	= A7;	// Release Time
+
 
 #ifndef USES_AUDIOSHIELD
 const int poti_on_a4	= A4;	// ONLY WIHOUTH AUDIO SHIELD	/4
@@ -133,18 +137,18 @@ void setup() {
     sgtl5000_1.volume(1);
 	#endif
 
-	mixer_a.gain(0,1.5);                       	// /4
+	mixer_a.gain(0,1.5);                       	// ROEY This is the default value for divide-by-4
 	mixer_a.gain(1,0);   				       	// /3
 	mixer_a.gain(2,0.4);  						// /2
-	mixer_a.gain(3,0);   						// /7
+	mixer_a.gain(3,0);   						// ROEY This is the default vaule for divide-by-7
 
 	vco_a.frequencyModulation(8);			    // 8 Octaves Pitch Modulation
 	vco_a.begin(0.8, 80, WAVEFORM_SINE);
 
 	mixer_b.gain(0,1);   						// Carrier
 	mixer_b.gain(1,1);   						// Noise
-	mixer_b.gain(2,0.8);   						// /5
-	mixer_b.gain(3,0.5);   						// /8
+	mixer_b.gain(2,0.8);   						// ROEY This is the default value for divide-by-5
+	mixer_b.gain(3,0.5);   						// ROEY This is the default vaule for divide-by-8
 
 	vco_b.frequencyModulation(8);				// 8 Octaves Pitch Modulation
 	vco_b.begin(0.8, 150, WAVEFORM_SINE);
@@ -152,9 +156,8 @@ void setup() {
 	envelope_amplitude.attack(0);
 	envelope_amplitude.decay(2);
 	envelope_amplitude.sustain(1);
-	envelope_amplitude.release(220);			// ROEY This release of the amplitude envelope is important for the sound
-												// The longer it gets, the longer the drum sound gets.
-	
+	envelope_amplitude.release(220);			
+													
 	envelope_filter.attack(3);
 	envelope_filter.decay(2);
 	envelope_filter.sustain(1);
@@ -333,13 +336,13 @@ void loop() {
 	envelope_filter.release(poti_release_calculated);
 
 	#ifndef USES_AUDIOSHIELD
-	float poti_div4_raw		= (float)analogRead(poti_on_A4) / 1023;	// Div4
+	float poti_div4_raw		= (float)analogRead(poti_on_a4) / 1023;	// Div4
 	mixer_a.gain(0, poti_div4_raw);
-	float poti_div5_raw		= (float)analogRead(poti_on_A5) / 1023;	// Div5
+	float poti_div5_raw		= (float)analogRead(poti_on_a5) / 1023;	// Div5
 	mixer_b.gain(2, poti_div5_raw);
-	float poti_div7_raw		= (float)analogRead(poti_on_A8) / 1023;	// Div7
+	float poti_div7_raw		= (float)analogRead(poti_on_a8) / 1023;	// Div7
 	mixer_a.gain(3, poti_div7_raw);
-	float poti_div8_raw		= (float)analogRead(poti_on_A9) / 1023;	// Div8
+	float poti_div8_raw		= (float)analogRead(poti_on_a9) / 1023;	// Div8
 	mixer_b.gain(3, poti_div8_raw);
 	#endif
 
