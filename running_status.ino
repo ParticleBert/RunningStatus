@@ -310,52 +310,38 @@ void loop() {
 		ctr_millis = 0;				// Reset the milliseconds
 	}
 	
-	// --------------------------------------------------------------------------
-	// Read the potis
-	// --------------------------------------------------------------------------
-	// 	A6			A7			A1 		A2		A3
-	//	log			log			lin		lin		lin  
-	// decay+filter	nothing		noise	body	tempo
-	//							grit
-	float poti_a7	= (float)analogRead(A7) / 1023;
-	float various3_poti_raw = (float)analogRead(A6) / 1023;		// On my HW this poti is logarithmic
-
-	float various2_poti_raw = (float)analogRead(A1) / 1023;	
-	float various1_poti_raw = (float)analogRead(A2) / 1023;
-	float bpm_poti_raw = (float)analogRead(poti_on_a3) / 1023;
-
-  
-	// ------------------------------------------------------------------------
-	// Do the poti calculations
-	// ------------------------------------------------------------------------
-  
-	// BPM poti
-	// Scale the value to the allowed BPM maximum and minimum
-	float bpm_scaled_value = bpm_poti_raw * (BPM_UPPER_LIMIT - BPM_LOWER_LIMIT);
-	bpm_scaled_value = bpm_scaled_value + BPM_LOWER_LIMIT;
-  
-	// Calculate the frequency which corresponds to 1/16th note at the chosen BPM
-	time_16th = 60 / (bpm_scaled_value * 4) * 1000;   // in ms      FIXME Why 2?
-	float hertz_16th = (bpm_scaled_value * 2) / 60;         // In Hertz   FIXME Why 2?
-
-	// envelope1.release(time_16th*4);
-	// Timer1.setPeriod(time_16th);
-
-	// Frequency poti
-	float freq_a = various3_poti_raw * 2;
-	freq_a = freq_a - 1;
-
-	// Body
-	mixer_a.gain(0,various1_poti_raw);
+	// Read the potis and set the values
+	float poti_grit_raw		= (float)analogRead(poti_on_a1) / 1023;	// Grit equals noise and is routed to the noise amplitude
+	noise1.amplitude(poti_grit_raw);
 	
-	// Grit / Noise
-	noise1.amplitude(various2_poti_raw);
+	float poti_body_raw		= (float)analogRead(poti_on_a2) / 1023;	// Body is the carrier amount
+	mixer_a.gain(0,poti_body_raw);
+	
+	float poti_tempo_raw 	= (float)analogRead(poti_on_a3) / 1023;					// Tempo is the tempo
+	float bpm_scaled_value = poti_tempo_raw * (BPM_UPPER_LIMIT - BPM_LOWER_LIMIT);	// Scale the value to the selected BPM range.
+	bpm_scaled_value = bpm_scaled_value + BPM_LOWER_LIMIT;
+	time_16th = 60 / (bpm_scaled_value * 4) * 1000;   								// *1000 because ms
+	
+	float poti_cutoff_raw	= (float)analogRead(poti_on_a6) / 1023;	// The cutoff-frequency for the filter		
+	float freq_a = poti_cutoff_raw * 2;
+	freq_a = freq_a - 1;
 	dc_forfilter.amplitude(freq_a);
 
-	// Release
-	poti_a7	= poti_a7 * time_16th * 2;
-	envelope_amplitude.release(poti_a7);
-	envelope_filter.release(poti_a7);
+	float poti_release_raw	= (float)analogRead(poti_on_a7) / 1023;
+	float poti_release_calculated	= poti_release_raw * time_16th * 2;
+	envelope_amplitude.release(poti_release_calculated);
+	envelope_filter.release(poti_release_calculated);
+
+	#ifndef USES_AUDIOSHIELD
+	float poti_div4_raw		= (float)analogRead(poti_on_A4) / 1023;	// Div4
+	mixer_a.gain(0, poti_div4_raw);
+	float poti_div5_raw		= (float)analogRead(poti_on_A5) / 1023;	// Div5
+	mixer_b.gain(2, poti_div5_raw);
+	float poti_div7_raw		= (float)analogRead(poti_on_A8) / 1023;	// Div7
+	mixer_a.gain(3, poti_div7_raw);
+	float poti_div8_raw		= (float)analogRead(poti_on_A9) / 1023;	// Div8
+	mixer_b.gain(3, poti_div8_raw);
+	#endif
 
 	// Again, as soon as the amplitude envelope reaches the sustain phase, the noteOff gets automatically sent.
 	if(envelope_amplitude.isSustain() == true)
