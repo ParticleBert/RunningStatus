@@ -2,7 +2,7 @@
 #include <Wire.h>
 
 #define DEBUG				// ROEY Uncomment this line if you want to disable the debugging over the serial line.
-#define USES_AUDIOSHIELD	// ROEY If you use the audioshield, then keep this line active.
+// #define USES_AUDIOSHIELD	// ROEY If you use the audioshield, then keep this line active.
 							// If you use only the DAC, then disable this line by making it a comment (//)
 // 	DAC-Mode									Audioshield-Mode	
 // 	CODEC (SGTL5000) will not be initialized	CODEC will be initialized
